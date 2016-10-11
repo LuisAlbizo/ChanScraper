@@ -1,16 +1,41 @@
 from basic import *
 from os import system as sh, mkdir
 
-class albizo:
-	def __init__(self):
+class FourchanScraper:
+	def __init__(self,directory):
+		self.directory=directory
 		self.__main_chan="http://www.4chan.org/"
 		self.__board="http://boards.4chan.org"
 		self.__actual_url=self.__main_chan
 		self.boards=[]
+		self.acualboard=None
 		self.main_screen()
 
 	def get_tab(self,url):
 		return url[url.index("g")+1:]
+
+	def get_thread_files(self,url,directory):
+		try:
+			mkdir(self.directory+self.actualboard)
+			mkdir(self.directory+self.actualboard+directory)
+		except:
+			try:
+				mkdir(self.directory+self.actualboard+directory)
+			except:
+				pass
+		print("Loading...")
+		fsp=bs(r.get(url).content,"html.parser")
+		files=fsp.findAll("div",{"class":"fileText"})
+		c=len(files)
+		i=0
+		for el in files:
+			current_file=el.find("a")
+			filename=self.directory+self.actualboard+directory+current_file.text
+			f=open(filename,"wb")
+			f.write(r.get(fix_rel(current_file["href"],"http")).content)
+			f.close()
+			i+=1
+			print("(%i of %i) %s downloaded" % (i, c, filename)) 
 
 	def main_screen(self,stats=True,long_tabs=False):
 		sp=bs(r.get(self.__main_chan).content,"html.parser")
@@ -33,7 +58,7 @@ class albizo:
 				print(el.text)
 		print("\n\tChoose your board: \n")
 		for el in tabs.keys():
-			self.boards.append(el,":",tabs[el]["name"])
+			self.boards.append(el+"-"+tabs[el]["name"])
 		self.display_listofboards()
 		self.goto_board("/"+input("\nBoard: ")+"/")
 
@@ -41,11 +66,11 @@ class albizo:
 		i=0
 		while i<len(self.boards):
 			try:
-				print(self.boards[i]+"|"+self.boards[i+1]+"|"+self.boards[i+2])
+				print(self.boards[i]+" "+self.boards[i+1]+" "+self.boards[i+2])
 				i+=3
 			except:
 				try:
-					print(self.boards[i]+"|"+self.boards[i+1])
+					print(self.boards[i]+" "+self.boards[i+1])
 					break
 				except:
 					print(self.boards[i])
@@ -55,20 +80,23 @@ class albizo:
 		threads={}
 		soup=bs(r.get(board_page).content)
 		board=self.__actual_url
-		print(board)
 		tdb=soup.findAll("div",{"class":"thread"})
 		i=1
 		for el in tdb:
 			op=el.find("div",{"class":"postContainer opContainer"})
-			post_info=op.find("span",{"class":"name"}).text+op.find("span",{"class":"dateTime postNum"}).text
+			post_info=op.find("span",{"class":"name"}).text+" "+op.find("span",{"class":"dateTime postNum"}).text
 			postid=op.find("a",{"title":"Reply to this post"})
-			file_info=op.find("div",{"class":"fileText"})
-			file_url=fix_rel(file_info.find("a")["href"])
-			file_info=file_info.text
+			try:
+				file_info=op.find("div",{"class":"fileText"})
+				file_url=fix_rel(file_info.find("a")["href"])
+				file_info=file_info.text
+			except:
+				file_info=str()
+				file_url=str()
 			replys=str(op.find("span",{"class":"info"}).text)
 			title_thread=str(op.find("span",{"class":"subject"}).text)
 			message=str(op.find("blockquote",{"class":"postMessage"}).text)
-			threads[i]={"post_info":post_info,"post_url":board+postid["href"]}
+			threads[i]={"post_id":postid,"post_info":post_info,"post_url":board+postid["href"].split("#")[0]}
 			threads[i]["file_info"]=file_info
 			threads[i]["file_url"]=file_url
 			threads[i]["title"]=title_thread
@@ -88,14 +116,40 @@ class albizo:
 	def goto_board(self,board):
 		#Shows Message
 		sh("clear")
+		self.actualboard=board
 		print("Your request: "+board)
 		self.__actual_url=self.__board+board
 		sp=bs(r.get(self.__actual_url).content,"html.parser")
+		print(sp.find("title").text+"\n"+get_meta_info("description",sp))
+		if sp.find("title").text[:3]=="404":
+			print("404 - back to main")
+			self.main_screen()
 		print("Loading threads...")
 		threads=self.get_threads(self.__actual_url)
 		print("Displaying threads...")
 		self.display_board(threads)
+		while True:
+			print("\n\tOptions:\n[i:download by idshort] [m:go to main] [c:change current page]\n[p:download all images of all threads in actual page]\n[x:exit]")
+			opc=input("option: ")
+			if opc=="i":
+				idshort=int(input("select idshort: "))
+				self.get_thread_files(threads[idshort]["post_url"],input("directory: ")+"/")
+			elif opc=="m":
+				self.main_screen()
+			elif opc=="c":
+				page=input("Enter number of page: ")
+				self.goto_board(self.__actual_url+page)
+			elif opc=="p":
+				for idshort in list(threads.keys()):
+					#title=threads[idshort]["title"]
+					#if title==str():
+					title=threads[idshort]["post_id"]
+					print("Downloading thread: "+title)
+					self.get_thread_files(threads[idshort]["post_url"],title+"/")
+					 print("%i of 15 threads completed" % (idshort))
+			elif opc=="x":
+				exit()
 
-albizo()
+FourchanScraper("/sdcard/images/")
 
 #Luis Albizo 10/10/16
