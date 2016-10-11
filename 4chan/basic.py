@@ -9,6 +9,12 @@ from random import randint as rand
 abc="abcdefghijklmjopqrstuvwxyz"
 abc=abc+abc.upper()+"1234567890_"
 
+def get_meta_info(what,soup):
+	try:
+		return soup.find("meta",{"name":what})["content"]
+	except:
+		return str()
+
 def get_ext(url):
 	return url[-4:]
 
