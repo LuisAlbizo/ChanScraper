@@ -34,19 +34,16 @@ def random_string(leng=5):
 	return gen
 
 def add(q):
-	try:
-		return str(int(q)+1)
-	except:
-		return str(q)+random_string(3)
+	return random_string(3)+q
 
-def setfilename(dire,name="1",ext=".txt"):
-	if name+ext in ls(dire):
-		return setfilename(dire,add(name),ext)
+def setfilename(dire,name):
+	if name in ls(dire):
+		return setfilename(dire,add(name))
 	else:
-		return name+ext
+		return name
 
-def down(url,dest,filename="download",ext=".txt"):
-	f=open(dest+setfilename(dest,filename,ext),"w")
+def down(url,dest,filename="download.txt"):
+	f=open(dest+setfilename(dest,filename),"w")
 	f.write(r.get(url).content)
 	f.close()
 

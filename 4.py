@@ -1,6 +1,13 @@
 from basic import *
 from os import system as sh, mkdir
 
+"""
+Este script no esta bien hecho, no esta modularizado y la clase no representa ningun objeto.
+Solo se puede usar este script a travez de una interfaz consola (a menos que tu modifiques este codigo)
+Probablememte tenga muchos errores, hice este script en poco tiempo (2 dias) y no segui ninguna logica.
+Ten en cuenta eso cuando leas mi codigo porque ni yo lo entiendo.
+"""
+
 class FourchanScraper:
 	def __init__(self,directory):
 		self.directory=directory
@@ -30,13 +37,21 @@ class FourchanScraper:
 		i=0
 		for el in files:
 			current_file=el.find("a")
-			filename=self.directory+self.actualboard+directory+current_file.text
+			try:
+				filename=self.directory+self.actualboard+directory+current_file["title"]
+			except:
+				filename=self.directory+self.actualboard+directory+current_file.text
 			f=open(filename,"wb")
 			f.write(r.get(fix_rel(current_file["href"],"http")).content)
 			f.close()
 			i+=1
-			print("(%i of %i) %s downloaded" % (i, c, filename)) 
+			print("(%i/%i) %s saved" % (i, c,filename.split("/")[-1])) 
 
+	def view_thread(self,thread):
+		tsp=bs(r.get(thread).content,"html.parser").find("div",{"class":"thread"})
+		op=tsp.find("div",{"class":"postContainer opContainer"})
+		print("OP\n")
+		
 	def main_screen(self,stats=True,long_tabs=False):
 		sp=bs(r.get(self.__main_chan).content,"html.parser")
 		tablones=sp.findAll("div",{"class":"boxcontent"})[1]
@@ -129,7 +144,7 @@ class FourchanScraper:
 		print("Displaying threads...")
 		self.display_board(threads)
 		while True:
-			print("\n\tOptions:\n[i:download by idshort] [m:go to main] [c:change current page]\n[p:download all images of all threads in actual page]\n[x:exit]")
+			print("\n\tOptions:\n[i:download by idshort] [m:go to main] [c:change current page]\n[p:download all images of all threads in actual page]\n[v:view thread] [x:exit]")
 			opc=input("option: ")
 			if opc=="i":
 				idshort=int(input("select idshort: "))
@@ -138,15 +153,19 @@ class FourchanScraper:
 				self.main_screen()
 			elif opc=="c":
 				page=input("Enter number of page: ")
-				self.goto_board(self.__actual_url+page)
+				self.goto_board(self.actualboard+page)
+			elif opc=="v":
+				idshort=int(input("select idshort: "))
+				self.view_thread(threads[idshort]["post_url"])
 			elif opc=="p":
 				for idshort in list(threads.keys()):
 					#title=threads[idshort]["title"]
 					#if title==str():
-					title=threads[idshort]["post_id"]
+					title=threads[idshort]["post_id"].text
 					print("Downloading thread: "+title)
+					print("Downloading from: "+ threads[idshort]["post_url"])
 					self.get_thread_files(threads[idshort]["post_url"],title+"/")
-					 print("%i of 15 threads completed" % (idshort))
+					print("%i of 15 threads completed" % (idshort))
 			elif opc=="x":
 				exit()
 
